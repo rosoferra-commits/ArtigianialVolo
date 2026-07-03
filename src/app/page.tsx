@@ -81,6 +81,7 @@ export default function Homepage() {
           onClick={() => router.push('/cliente/benvenuto')}
           style={{
             width: '100%',
+            boxSizing: 'border-box',
             padding: '22px 24px',
             borderRadius: 20,
             border: 'none',
@@ -116,6 +117,7 @@ export default function Homepage() {
           onClick={() => router.push('/artigiano/login')}
           style={{
             width: '100%',
+            boxSizing: 'border-box',
             padding: '20px 24px',
             borderRadius: 20,
             border: '1.5px solid rgba(255,255,255,0.12)',
