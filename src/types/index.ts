@@ -64,6 +64,8 @@ export interface Intervento {
   indirizzo_lat:           number | null
   indirizzo_lng:           number | null
   descrizione:             string | null
+  scade_at:                string | null
+  stelle_cliente:          number | null
   creato_at:               string
   aggiornato_at:           string
 }
