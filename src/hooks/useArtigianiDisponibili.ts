@@ -74,7 +74,10 @@ export function useArtigianiDisponibili(
         return true
       })
       .map(r => {
-        const art = r.artigiani as {
+        // Supabase può restituire il join come array anche per relazioni 1:1
+        // a seconda della versione del client — normalizziamo qui
+        const artRaw = Array.isArray(r.artigiani) ? r.artigiani[0] : r.artigiani
+        const art = artRaw as unknown as {
           nome: string
           categoria: Categoria
           costo_chiamata_sos: number
