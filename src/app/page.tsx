@@ -22,12 +22,12 @@ export default function Homepage() {
       boxSizing: 'border-box',
     }}>
 
-      {/* Sfondo decorativo — cerchio sfumato arancio */}
+      {/* Sfondo decorativo — cerchio sfumato arancio, ancorato al centro, mai oltre il contenitore */}
       <div style={{
         position: 'absolute',
-        top: -120, left: '50%',
-        transform: 'translateX(-50%)',
-        width: 'min(600px, 150vw)', height: 600,
+        top: -120, left: 0, right: 0,
+        margin: '0 auto',
+        width: '90%', maxWidth: 600, height: 600,
         borderRadius: '50%',
         background: 'radial-gradient(circle, rgba(216,90,48,0.22) 0%, transparent 70%)',
         pointerEvents: 'none',
