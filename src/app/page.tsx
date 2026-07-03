@@ -42,6 +42,7 @@ export default function Homepage() {
         justifyContent: 'center',
         padding: '60px 24px 0',
         width: '100%',
+        boxSizing: 'border-box',
         maxWidth: 400,
       }}>
         <Image
@@ -70,6 +71,7 @@ export default function Homepage() {
       {/* Bottoni */}
       <div style={{
         width: '100%',
+        boxSizing: 'border-box',
         padding: '0 20px 52px',
         display: 'flex',
         flexDirection: 'column',
@@ -82,7 +84,9 @@ export default function Homepage() {
         <button
           onClick={() => router.push('/cliente/benvenuto')}
           style={{
+            display: 'block',
             width: '100%',
+            maxWidth: '100%',
             boxSizing: 'border-box',
             padding: '22px 24px',
             borderRadius: 20,
@@ -106,10 +110,10 @@ export default function Homepage() {
           <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.7)', margin: '0 0 4px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
             Sei un cliente?
           </p>
-          <p style={{ fontSize: 22, fontWeight: 800, margin: 0, lineHeight: 1.2 }}>
+          <p style={{ fontSize: 22, fontWeight: 800, margin: 0, lineHeight: 1.2, wordBreak: 'break-word' }}>
             🏠 Ho un problema in casa
           </p>
-          <p style={{ fontSize: 13, margin: '6px 0 0', color: 'rgba(255,255,255,0.75)', fontWeight: 400 }}>
+          <p style={{ fontSize: 13, margin: '6px 0 0', color: 'rgba(255,255,255,0.75)', fontWeight: 400, wordBreak: 'break-word' }}>
             Trova un artigiano disponibile ora vicino a te →
           </p>
         </button>
@@ -118,7 +122,9 @@ export default function Homepage() {
         <button
           onClick={() => router.push('/artigiano/login')}
           style={{
+            display: 'block',
             width: '100%',
+            maxWidth: '100%',
             boxSizing: 'border-box',
             padding: '20px 24px',
             borderRadius: 20,
@@ -133,10 +139,10 @@ export default function Homepage() {
           <p style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.45)', margin: '0 0 4px', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
             Sei un professionista?
           </p>
-          <p style={{ fontSize: 20, fontWeight: 800, margin: 0, lineHeight: 1.2 }}>
+          <p style={{ fontSize: 20, fontWeight: 800, margin: 0, lineHeight: 1.2, wordBreak: 'break-word' }}>
             🔧 Sono un artigiano
           </p>
-          <p style={{ fontSize: 13, margin: '6px 0 0', color: 'rgba(255,255,255,0.5)', fontWeight: 400 }}>
+          <p style={{ fontSize: 13, margin: '6px 0 0', color: 'rgba(255,255,255,0.5)', fontWeight: 400, wordBreak: 'break-word' }}>
             Accedi o registrati per ricevere lavori →
           </p>
         </button>
