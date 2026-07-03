@@ -40,28 +40,28 @@ export default function Homepage() {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '60px 24px 0',
+        padding: '40px 24px 0',
         width: '100%',
         boxSizing: 'border-box',
-        maxWidth: 400,
+        maxWidth: 460,
       }}>
         <Image
           src="/logo.png"
           alt="ArtigianiAlVolo"
-          width={260}
-          height={186}
-          style={{ objectFit: 'contain', filter: 'drop-shadow(0 4px 24px rgba(216,90,48,0.4))' }}
+          width={280}
+          height={284}
+          style={{ objectFit: 'contain', width: '100%', maxWidth: 280, height: 'auto', filter: 'drop-shadow(0 6px 32px rgba(216,90,48,0.5))' }}
           priority
         />
 
         {/* Tagline */}
         <p style={{
-          marginTop: 24,
-          fontSize: 15,
-          color: 'rgba(255,255,255,0.45)',
-          letterSpacing: '0.12em',
+          marginTop: 20,
+          fontSize: 16,
+          color: 'rgba(255,255,255,0.55)',
+          letterSpacing: '0.1em',
           textTransform: 'uppercase',
-          fontWeight: 500,
+          fontWeight: 600,
           textAlign: 'center',
         }}>
           L'artigiano che ti serve, ora
