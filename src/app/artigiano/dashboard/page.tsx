@@ -540,7 +540,7 @@ export default function DashboardArtigiano() {
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
                 }}
               >
-                <span style={{ fontSize: 36 }}>⏻</span>
+                <span style={{ fontSize: 30 }}>🔌</span>
                 <span style={{ fontSize: 13 }}>{switching ? '…' : (online ? 'ONLINE' : 'OFFLINE')}</span>
               </button>
 

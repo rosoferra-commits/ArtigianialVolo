@@ -30,6 +30,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         background: '#fff',
         WebkitTextSizeAdjust: '100%',   // blocca il resize automatico del testo su iOS
         touchAction: 'manipulation',     // elimina il delay da 300ms sui tap
+        overflowX: 'hidden',             // impedisce scroll orizzontale indesiderato
+        maxWidth: '100vw',
       }}>
         {children}
       </body>

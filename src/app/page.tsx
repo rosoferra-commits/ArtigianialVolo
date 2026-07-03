@@ -10,14 +10,16 @@ export default function Homepage() {
   return (
     <div style={{
       minHeight: '100dvh',
+      width: '100%',
+      maxWidth: '100vw',
       background: '#111111',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'space-between',
-      padding: '0 0 0',
       position: 'relative',
       overflow: 'hidden',
+      boxSizing: 'border-box',
     }}>
 
       {/* Sfondo decorativo — cerchio sfumato arancio */}
@@ -25,7 +27,7 @@ export default function Homepage() {
         position: 'absolute',
         top: -120, left: '50%',
         transform: 'translateX(-50%)',
-        width: 600, height: 600,
+        width: 'min(600px, 150vw)', height: 600,
         borderRadius: '50%',
         background: 'radial-gradient(circle, rgba(216,90,48,0.22) 0%, transparent 70%)',
         pointerEvents: 'none',
