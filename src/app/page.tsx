@@ -50,7 +50,11 @@ export default function Homepage() {
           alt="ArtigianiAlVolo"
           width={280}
           height={284}
-          style={{ objectFit: 'contain', width: '100%', maxWidth: 280, height: 'auto', filter: 'drop-shadow(0 6px 32px rgba(216,90,48,0.5))' }}
+          style={{
+            objectFit: 'contain', width: '100%', maxWidth: 280, height: 'auto',
+            borderRadius: 28,
+            filter: 'drop-shadow(0 6px 32px rgba(216,90,48,0.5))',
+          }}
           priority
         />
 
