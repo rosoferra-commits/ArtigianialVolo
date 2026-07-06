@@ -348,15 +348,44 @@ export default function DashboardArtigiano() {
 
   // ── Rifiuta / timer scaduto ──────────────────────────────────────────────
   async function rifiuta() {
-    if (!intervento) return
+    if (!intervento || !artigiano) return
     const intId = intervento.id
-    // Ricarica subito, la fetch va in background
+
+    // Aggiorna la fase in background
     fetch(`/api/interventi/${intId}`, {
       method:  'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ fase: 'rifiutato' }),
     })
-    window.location.reload()
+
+    // Ripristina l'artigiano sulla mappa — era stato tolto quando
+    // il cliente ha creato la richiesta (vedi POST /api/interventi),
+    // ora che ha rifiutato (o il timer è scaduto) torna disponibile
+    // con lo stesso tipo e la posizione GPS attuale.
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          await supabase
+            .from('artigiani_disponibili')
+            .upsert({
+              artigiano_id: artigiano.id,
+              tipo:         tipoOnline,
+              lat:          pos.coords.latitude,
+              lng:          pos.coords.longitude,
+              attivato_at:  new Date().toISOString(),
+            }, { onConflict: 'artigiano_id' })
+          window.location.reload()
+        },
+        () => {
+          // Se il GPS fallisce non blocchiamo comunque il rifiuto,
+          // l'artigiano dovrà premere di nuovo ONLINE manualmente
+          window.location.reload()
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      )
+    } else {
+      window.location.reload()
+    }
   }
 
   // ── Proponi totale al cliente ─────────────────────────────────────────────

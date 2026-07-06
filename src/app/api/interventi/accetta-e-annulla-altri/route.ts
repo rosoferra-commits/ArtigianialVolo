@@ -9,10 +9,6 @@
 //      dello stesso artigiano e li porta a 'annullato_concorrenza'
 //      così il cliente perdente vede subito un messaggio chiaro
 //      invece di aspettare il timeout silenzioso dei 5 minuti.
-//
-// Senza questa route, il vecchio comportamento sovrascriveva silenziosamente
-// lo stato nella dashboard artigiano (vedeva solo l'ultimo intervento
-// arrivato) lasciando che gli altri scadessero senza spiegazione.
 
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer }            from '@/lib/supabase-server'
@@ -48,7 +44,6 @@ export async function POST(req: NextRequest) {
 
     if (selErr) {
       console.error('[accetta-e-annulla-altri] select altri:', selErr)
-      // Non blocchiamo la risposta per questo — l'accettazione principale è già andata a buon fine
     }
 
     if (altriPendenti && altriPendenti.length > 0) {

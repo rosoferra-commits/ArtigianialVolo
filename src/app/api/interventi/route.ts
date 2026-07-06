@@ -38,8 +38,6 @@ export async function POST(req: NextRequest) {
 
     // Se il cliente ha già selezionato un suggerimento dall'autocomplete,
     // le coordinate arrivano già pronte — niente bisogno di geocodificare.
-    // Geocodifichiamo solo come fallback (es. utente ha digitato senza
-    // selezionare dal menu a tendina).
     let coords: { lat: number; lng: number } | null =
       (typeof indirizzo_lat === 'number' && typeof indirizzo_lng === 'number')
         ? { lat: indirizzo_lat, lng: indirizzo_lng }
@@ -82,6 +80,21 @@ export async function POST(req: NextRequest) {
     if (intErr) {
       console.error('[POST /api/interventi]', intErr)
       return NextResponse.json({ error: intErr.message }, { status: 500 })
+    }
+
+    // Rimuove SUBITO l'artigiano dalla mappa — non deve essere cliccabile
+    // da altri clienti mentre sta valutando questa richiesta (5 minuti).
+    // Senza questo, due clienti potrebbero cliccare sullo stesso pin quasi
+    // in contemporanea prima che l'artigiano risponda. Se l'artigiano
+    // rifiuta o il timer scade, la dashboard artigiano lo re-inserisce
+    // automaticamente (vedi funzione rifiuta() in dashboard/page.tsx).
+    const { error: rimuoviErr } = await sb
+      .from('artigiani_disponibili')
+      .delete()
+      .eq('artigiano_id', artigiano_id)
+
+    if (rimuoviErr) {
+      console.error('[POST /api/interventi] rimozione da disponibili fallita:', rimuoviErr)
     }
 
     return NextResponse.json({ id: intervento.id, scade_at: intervento.scade_at })
