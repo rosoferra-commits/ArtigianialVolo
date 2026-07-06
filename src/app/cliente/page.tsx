@@ -1298,16 +1298,30 @@ function FlussoIntervento({
     case 'pagato':
     case 'rifiutato': {
       const completato = fase === 'pagato'
+      // Distingue due scenari diversi che condividono la fase 'rifiutato':
+      // - L'artigiano ha rifiutato la richiesta iniziale (mai arrivato,
+      //   mai fatto una proposta) → totale_proposto è null → NESSUN addebito
+      // - Il cliente ha rifiutato il preventivo finale dopo che l'artigiano
+      //   è arrivato e ha fatto una stima → totale_proposto valorizzato
+      //   → viene addebitato il solo diritto di chiamata
+      const artigianoHaRifiutato = !completato && intervento.totale_proposto == null
+
       return (
         <Centrata>
           <p style={{ fontSize: 52 }}>{completato ? '🏠' : 'ℹ️'}</p>
           <p style={{ fontWeight: 700, fontSize: 20, marginTop: 12, color: C.testo }}>
-            {completato ? 'Lavoro completato!' : 'Intervento chiuso'}
+            {completato
+              ? 'Lavoro completato!'
+              : artigianoHaRifiutato
+                ? 'Artigiano non disponibile'
+                : 'Intervento chiuso'}
           </p>
           <p style={{ fontSize: 13, color: C.testoS, marginTop: 6, maxWidth: 280, textAlign: 'center' }}>
             {completato
               ? 'Com\'è andata? Lascia una valutazione all\'artigiano.'
-              : `Addebitato solo il diritto di chiamata: € ${intervento.costo_chiamata}.`}
+              : artigianoHaRifiutato
+                ? 'L\'artigiano non ha potuto accettare la tua richiesta. Non ti è stato addebitato nulla.'
+                : `Hai rifiutato il preventivo. Addebitato solo il diritto di chiamata: € ${intervento.costo_chiamata}.`}
           </p>
 
           {completato && (
