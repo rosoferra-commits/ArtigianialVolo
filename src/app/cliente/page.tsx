@@ -1270,6 +1270,31 @@ function FlussoIntervento({
       )
     }
 
+    // ── ANNULLATO PER CONCORRENZA: un altro cliente ha "battuto sul tempo" ────
+    case 'annullato_concorrenza': {
+      return (
+        <Centrata>
+          <p style={{ fontSize: 52 }}>⏱️</p>
+          <p style={{ fontWeight: 700, fontSize: 20, marginTop: 12, color: C.testo }}>
+            Artigiano non più disponibile
+          </p>
+          <p style={{ fontSize: 13, color: C.testoS, marginTop: 6, maxWidth: 300, textAlign: 'center', lineHeight: 1.6 }}>
+            Un altro cliente ha contattato questo artigiano poco prima di te
+            e lui ha accettato la sua richiesta.
+          </p>
+          <div style={{
+            background: '#E1F5EE', borderRadius: 12, padding: '10px 16px', marginTop: 16,
+            fontSize: 12, color: '#1D5C42', maxWidth: 300, textAlign: 'center', lineHeight: 1.5,
+          }}>
+            🔒 Non ti è stato addebitato nulla.
+          </div>
+          <div style={{ marginTop: 24, width: '100%', maxWidth: 320 }}>
+            <Bottone label="Cerca un altro artigiano" colore={C.arancio} onClick={onAnnulla} />
+          </div>
+        </Centrata>
+      )
+    }
+
     case 'pagato':
     case 'rifiutato': {
       const completato = fase === 'pagato'

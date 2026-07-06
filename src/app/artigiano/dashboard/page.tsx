@@ -304,21 +304,33 @@ export default function DashboardArtigiano() {
 
   // ── Accetta richiesta ────────────────────────────────────────────────────
   async function accetta() {
-    if (!intervento) return
+    if (!intervento || !artigiano) return
     setInviando(true)
-    await fetch(`/api/interventi/${intervento.id}`, {
-      method:  'PATCH',
+
+    // Route atomica: accetta questo intervento E annulla automaticamente
+    // eventuali altri interventi pendenti dello stesso artigiano
+    // (risolve il caso di due clienti che chiamano contemporaneamente)
+    const res = await fetch('/api/interventi/accetta-e-annulla-altri', {
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ fase: 'accettato' }),
+      body:    JSON.stringify({
+        intervento_id: intervento.id,
+        artigiano_id:  artigiano.id,
+      }),
     })
-    // Rimuovi dalla mappa — non disponibile durante l'intervento
-    if (artigiano) {
-      await supabase
-        .from('artigiani_disponibili')
-        .delete()
-        .eq('artigiano_id', artigiano.id)
-      setOnline(false)
+
+    if (!res.ok) {
+      const j = await res.json()
+      console.error('[accetta]', j.error)
     }
+
+    // Rimuovi dalla mappa — non disponibile durante l'intervento
+    await supabase
+      .from('artigiani_disponibili')
+      .delete()
+      .eq('artigiano_id', artigiano.id)
+    setOnline(false)
+
     setInviando(false)
   }
 

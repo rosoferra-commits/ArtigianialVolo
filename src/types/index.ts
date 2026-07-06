@@ -30,6 +30,7 @@ export type FaseIntervento =
   | 'pagato'       // cliente ha premuto "Lavoro terminato", pagamento catturato
   | 'rifiutato'    // cliente ha rifiutato la stima → catturato solo diritto di chiamata
   | 'annullato'    // cliente ha scelto un altro artigiano
+  | 'annullato_concorrenza'  // artigiano è stato accettato da un altro cliente prima
 
 export interface ArtigianoDisponibile {
   artigiano_id:           string
