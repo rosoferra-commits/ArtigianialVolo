@@ -2,6 +2,7 @@
 // POST: crea intervento, geocodifica l'indirizzo, imposta timer 5 min
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer }            from '@/lib/supabase-server'
+import { supabaseAdmin }             from '@/lib/supabase-admin'
 import { geocodificaIndirizzo }      from '@/lib/geocoding'
 
 export async function POST(req: NextRequest) {
@@ -84,17 +85,20 @@ export async function POST(req: NextRequest) {
 
     // Rimuove SUBITO l'artigiano dalla mappa — non deve essere cliccabile
     // da altri clienti mentre sta valutando questa richiesta (5 minuti).
-    // Senza questo, due clienti potrebbero cliccare sullo stesso pin quasi
-    // in contemporanea prima che l'artigiano risponda. Se l'artigiano
-    // rifiuta o il timer scade, la dashboard artigiano lo re-inserisce
-    // automaticamente (vedi funzione rifiuta() in dashboard/page.tsx).
-    const { error: rimuoviErr } = await sb
+    // Usa il client admin (service_role) perché il cliente che chiama
+    // questa route è anonimo: la RLS su artigiani_disponibili permette
+    // scrittura solo al proprietario autenticato, quindi con il client
+    // normale questa DELETE fallirebbe silenziosamente (nessun errore,
+    // ma zero righe modificate).
+    const { error: rimuoviErr, count } = await supabaseAdmin
       .from('artigiani_disponibili')
-      .delete()
+      .delete({ count: 'exact' })
       .eq('artigiano_id', artigiano_id)
 
     if (rimuoviErr) {
       console.error('[POST /api/interventi] rimozione da disponibili fallita:', rimuoviErr)
+    } else {
+      console.log(`[POST /api/interventi] rimosso artigiano ${artigiano_id} dalla mappa (righe: ${count})`)
     }
 
     return NextResponse.json({ id: intervento.id, scade_at: intervento.scade_at })
