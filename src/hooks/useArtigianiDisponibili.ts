@@ -116,19 +116,61 @@ export function useArtigianiDisponibili(
   useEffect(() => {
     carica()
 
-    const ch = supabase
-      .channel('artigiani_disponibili_live')
-      .on('postgres_changes', {
-        event:  '*',
-        schema: 'public',
-        table:  'artigiani_disponibili',
-      }, () => {
-        console.log('[hook artigiani] cambio rilevato, ricarico')
-        carica()
-      })
-      .subscribe()
+    let ch: ReturnType<typeof supabase.channel> | null = null
+    let riconnessioneTimeout: ReturnType<typeof setTimeout> | null = null
+    let attivo = true
 
-    return () => { supabase.removeChannel(ch) }
+    function creaCanale() {
+      ch = supabase
+        .channel('artigiani_disponibili_live')
+        .on('postgres_changes', {
+          event:  '*',
+          schema: 'public',
+          table:  'artigiani_disponibili',
+        }, () => {
+          console.log('[hook artigiani] cambio rilevato, ricarico')
+          carica()
+        })
+        .subscribe((status) => {
+          console.log('[hook artigiani] stato canale:', status)
+
+          // Su reti mobili instabili il WebSocket può cadere silenziosamente.
+          // Senza riconnessione automatica, il cliente continuerebbe a vedere
+          // la mappa "ferma" (pin non aggiornati) senza nessun errore visibile.
+          if ((status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && attivo) {
+            console.warn('[hook artigiani] canale perso, riconnessione tra 2s...')
+            if (ch) supabase.removeChannel(ch)
+            riconnessioneTimeout = setTimeout(() => {
+              if (attivo) creaCanale()
+            }, 2000)
+          }
+        })
+    }
+
+    creaCanale()
+
+    const handleOnline = () => {
+      console.log('[hook artigiani] rete tornata online, verifico canale...')
+      if (ch) { supabase.removeChannel(ch); creaCanale() }
+      carica()
+    }
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[hook artigiani] app tornata in foreground, verifico canale...')
+        if (ch) { supabase.removeChannel(ch); creaCanale() }
+        carica()
+      }
+    }
+    window.addEventListener('online', handleOnline)
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      attivo = false
+      if (riconnessioneTimeout) clearTimeout(riconnessioneTimeout)
+      window.removeEventListener('online', handleOnline)
+      document.removeEventListener('visibilitychange', handleVisibility)
+      if (ch) supabase.removeChannel(ch)
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filtro, posCliente?.lat, posCliente?.lng])
 

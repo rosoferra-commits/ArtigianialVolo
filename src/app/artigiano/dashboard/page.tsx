@@ -135,53 +135,101 @@ export default function DashboardArtigiano() {
   }, [])
 
   // ── Subscriptions Realtime su interventi ─────────────────────────────────
+  // IMPORTANTE: su reti mobili (4G/5G) il WebSocket di Supabase Realtime
+  // può cadere silenziosamente (cambio cella, refresh della connessione dati
+  // da parte del gestore) senza generare un errore visibile. Se non si
+  // gestisce la riconnessione, l'artigiano resta "online" a schermo ma
+  // non riceve più nessuna nuova richiesta — bug osservato in demo reale
+  // su rete mobile (funzionava su WiFi, falliva su 5G).
   useEffect(() => {
     if (!artigiano) return
 
-    const ch = supabase
-      .channel('interventi_artigiano')
-      .on('postgres_changes', {
-        event:  'INSERT',
-        schema: 'public',
-        table:  'interventi',
-        filter: `artigiano_id=eq.${artigiano.id}`,
-      }, (payload) => {
-        console.log('[dashboard] nuovo intervento:', payload.new)
-        setIntervento(payload.new as Intervento)
-        // Notifica sonora — beep urgente
-        try {
-          const ctx = new AudioContext()
-          const suonaSin = (freq: number, start: number, dur: number) => {
-            const osc  = ctx.createOscillator()
-            const gain = ctx.createGain()
-            osc.connect(gain); gain.connect(ctx.destination)
-            osc.frequency.value = freq
-            osc.type = 'sine'
-            gain.gain.setValueAtTime(0.4, ctx.currentTime + start)
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur)
-            osc.start(ctx.currentTime + start)
-            osc.stop(ctx.currentTime + start + dur)
-          }
-          // Tre beep crescenti
-          suonaSin(880, 0.0, 0.15)
-          suonaSin(880, 0.2, 0.15)
-          suonaSin(1100, 0.4, 0.25)
-        } catch (e) {
-          console.warn('[beep]', e)
-        }
-      })
-      .on('postgres_changes', {
-        event:  'UPDATE',
-        schema: 'public',
-        table:  'interventi',
-        filter: `artigiano_id=eq.${artigiano.id}`,
-      }, (payload) => {
-        console.log('[dashboard] update intervento:', payload.new)
-        setIntervento(payload.new as Intervento)
-      })
-      .subscribe()
+    let ch: ReturnType<typeof supabase.channel> | null = null
+    let riconnessioneTimeout: ReturnType<typeof setTimeout> | null = null
+    let attivo = true // per evitare riconnessioni dopo unmount
 
-    return () => { supabase.removeChannel(ch) }
+    function creaCanale() {
+      ch = supabase
+        .channel(`interventi_artigiano_${artigiano!.id}`)
+        .on('postgres_changes', {
+          event:  'INSERT',
+          schema: 'public',
+          table:  'interventi',
+          filter: `artigiano_id=eq.${artigiano!.id}`,
+        }, (payload) => {
+          console.log('[dashboard] nuovo intervento:', payload.new)
+          setIntervento(payload.new as Intervento)
+          try {
+            const ctx = new AudioContext()
+            const suonaSin = (freq: number, start: number, dur: number) => {
+              const osc  = ctx.createOscillator()
+              const gain = ctx.createGain()
+              osc.connect(gain); gain.connect(ctx.destination)
+              osc.frequency.value = freq
+              osc.type = 'sine'
+              gain.gain.setValueAtTime(0.4, ctx.currentTime + start)
+              gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur)
+              osc.start(ctx.currentTime + start)
+              osc.stop(ctx.currentTime + start + dur)
+            }
+            suonaSin(880, 0.0, 0.15)
+            suonaSin(880, 0.2, 0.15)
+            suonaSin(1100, 0.4, 0.25)
+          } catch (e) {
+            console.warn('[beep]', e)
+          }
+        })
+        .on('postgres_changes', {
+          event:  'UPDATE',
+          schema: 'public',
+          table:  'interventi',
+          filter: `artigiano_id=eq.${artigiano!.id}`,
+        }, (payload) => {
+          console.log('[dashboard] update intervento:', payload.new)
+          setIntervento(payload.new as Intervento)
+        })
+        .subscribe((status) => {
+          console.log('[dashboard] stato canale realtime:', status)
+
+          // Se il canale si chiude o va in errore (tipico su reti mobili
+          // instabili), ricrea la sottoscrizione dopo un breve ritardo
+          // invece di lasciare l'artigiano "sordo" senza saperlo.
+          if ((status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') && attivo) {
+            console.warn('[dashboard] canale realtime perso, riconnessione tra 2s...')
+            if (ch) supabase.removeChannel(ch)
+            riconnessioneTimeout = setTimeout(() => {
+              if (attivo) creaCanale()
+            }, 2000)
+          }
+        })
+    }
+
+    creaCanale()
+
+    // Riconnessione anche quando il browser torna online dopo un blackout
+    // di rete (es. galleria, ascensore, cambio cella) o quando la scheda
+    // torna visibile dopo essere stata in background — Android spesso
+    // sospende le connessioni WebSocket quando il browser va in background.
+    const handleOnline = () => {
+      console.log('[dashboard] rete tornata online, verifico canale...')
+      if (ch) { supabase.removeChannel(ch); creaCanale() }
+    }
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[dashboard] app tornata in foreground, verifico canale...')
+        if (ch) { supabase.removeChannel(ch); creaCanale() }
+      }
+    }
+    window.addEventListener('online', handleOnline)
+    document.addEventListener('visibilitychange', handleVisibility)
+
+    return () => {
+      attivo = false
+      if (riconnessioneTimeout) clearTimeout(riconnessioneTimeout)
+      window.removeEventListener('online', handleOnline)
+      document.removeEventListener('visibilitychange', handleVisibility)
+      if (ch) supabase.removeChannel(ch)
+    }
   }, [artigiano])
 
   // ── GPS tracking (solo quando online e fase = accettato) ─────────────────
