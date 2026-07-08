@@ -81,6 +81,8 @@ export default function ClientePage() {
   // Stelle recensione
   const [stelle, setStelle] = useState(0)
   const [mostraStelle, setMostraStelle] = useState(false)
+  const [mostraContestazione, setMostraContestazione] = useState(false)
+  const [motivoContestazione, setMotivoContestazione] = useState('')
 
   // Mappa Google Maps
   const mapRef          = useRef<HTMLDivElement>(null)
@@ -380,6 +382,38 @@ export default function ClientePage() {
     setMostraStelle(true)
   }, [interventoId])
 
+  // ── Cliente conferma il lavoro durante la finestra di conferma (48h) ──────────
+  const confermaLavoro = useCallback(async () => {
+    if (!interventoId) return
+
+    const res = await fetch(`/api/interventi/${interventoId}/conferma-cliente`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    if (!res.ok) {
+      const j = await res.json()
+      console.error('[conferma-cliente]', j.error)
+    }
+    localStorage.removeItem('aav_intervento_id')
+    setMostraStelle(true)
+  }, [interventoId])
+
+  // ── Cliente segnala un problema durante la finestra di conferma ───────────────
+  const contestaLavoro = useCallback(async () => {
+    if (!interventoId || !motivoContestazione.trim()) return
+
+    const res = await fetch(`/api/interventi/${interventoId}/contesta-cliente`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ motivo: motivoContestazione.trim() }),
+    })
+    if (!res.ok) {
+      const j = await res.json()
+      console.error('[contesta-cliente]', j.error)
+    }
+    setMostraContestazione(false)
+  }, [interventoId, motivoContestazione])
+
   // ── Invia recensione ─────────────────────────────────────────────────────────
   const inviaRecensione = useCallback(async () => {
     if (stelle > 0 && interventoId) {
@@ -473,6 +507,12 @@ export default function ClientePage() {
         setStelle={setStelle}
         decidi={decidi}
         lavoroTerminato={lavoroTerminato}
+        confermaLavoro={confermaLavoro}
+        contestaLavoro={contestaLavoro}
+        mostraContestazione={mostraContestazione}
+        setMostraContestazione={setMostraContestazione}
+        motivoContestazione={motivoContestazione}
+        setMotivoContestazione={setMotivoContestazione}
         decidiRitardo={decidiRitardo}
         artigianoInCoda={artigianoInCoda}
         inviaRecensione={inviaRecensione}
@@ -977,7 +1017,10 @@ function BottomSheet({
 function FlussoIntervento({
   interventoId, intervento, loading, errore,
   posCliente, stelle, setStelle,
-  decidi, lavoroTerminato, decidiRitardo, inviaRecensione, onAnnulla,
+  decidi, lavoroTerminato, confermaLavoro, contestaLavoro,
+  mostraContestazione, setMostraContestazione,
+  motivoContestazione, setMotivoContestazione,
+  decidiRitardo, inviaRecensione, onAnnulla,
 }: {
   interventoId:    string
   intervento:      ReturnType<typeof useIntervento>['intervento']
@@ -988,6 +1031,12 @@ function FlussoIntervento({
   setStelle:       (n: number) => void
   decidi:          (accetta: boolean) => void
   lavoroTerminato: () => void
+  confermaLavoro:  () => void
+  contestaLavoro:  () => void
+  mostraContestazione:    boolean
+  setMostraContestazione: (v: boolean) => void
+  motivoContestazione:    string
+  setMotivoContestazione: (v: string) => void
   decidiRitardo:   (aspetta: boolean, interventoId: string) => void
   artigianoInCoda: ArtigianoDisponibile | null
   inviaRecensione: () => void
@@ -1223,8 +1272,8 @@ function FlussoIntervento({
                 🔧 L'artigiano sta lavorando
               </p>
               <p style={{ fontSize: 13, color: '#2D7A5A', marginTop: 6, lineHeight: 1.6 }}>
-                Quando il lavoro sarà completato e sei soddisfatto,
-                premi il bottone qui sotto per confermare e pagare.
+                Quando avrà finito, riceverai una notifica per confermare
+                il lavoro svolto.
               </p>
             </div>
 
@@ -1243,30 +1292,155 @@ function FlussoIntervento({
               background: C.grigioC, borderRadius: 12, padding: '10px 14px',
               fontSize: 12, color: C.testoS, lineHeight: 1.6,
             }}>
-              💳 Il pagamento avverrà <strong>solo quando premi "Lavoro terminato"</strong>.
-              Finché non lo premi, nessun importo viene addebitato.
+              💳 Nessun addebito finché l'artigiano non segnala di aver finito
+              e tu confermi.
             </div>
 
           </div>
+        </div>
+      )
+    }
 
-          {/* Bottone principale — grande, impossibile non vederlo */}
-          <div style={{ padding: '16px 20px 40px', borderTop: `1px solid ${C.bordo}` }}>
+    // ── FINESTRA CONFERMA: artigiano ha segnalato fine lavoro, cliente decide ──
+    case 'finestra_conferma': {
+      const costo  = intervento.costo_chiamata
+      const lavoro = intervento.totale_proposto ?? 0
+      const totale = costo + lavoro
+
+      return (
+        <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', background: C.bianco }}>
+          <div style={{ padding: '16px 20px', borderBottom: `1px solid ${C.bordo}` }}>
+            <p style={{ fontWeight: 700, fontSize: 16, color: '#D4841A' }}>🔔 L'artigiano ha segnalato: lavoro finito</p>
+          </div>
+
+          <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+            <div style={{ background: '#FAEEDA', borderRadius: 16, padding: 16, border: '1.5px solid #D4841A' }}>
+              <p style={{ fontWeight: 700, fontSize: 15, color: '#8A5A10' }}>
+                L'artigiano dice di aver completato il lavoro
+              </p>
+              <p style={{ fontSize: 13, color: '#8A5A10', marginTop: 6, lineHeight: 1.6 }}>
+                Controlla che tutto sia a posto, poi conferma o segnala
+                un problema. Se non rispondi entro 48 ore, il pagamento
+                verrà elaborato automaticamente.
+              </p>
+              {intervento.scade_conferma_at && (
+                <p style={{ fontSize: 12, color: '#8A5A10', marginTop: 10, fontWeight: 600 }}>
+                  ⏱️ Scade il {new Date(intervento.scade_conferma_at).toLocaleString('it-IT', {
+                    day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit',
+                  })}
+                </p>
+              )}
+            </div>
+
+            <Riquadro titolo="Importo da confermare">
+              <RigaVoce label="Diritto di chiamata" valore={`€ ${costo}`} />
+              <RigaVoce label="Lavoro concordato"   valore={`€ ${lavoro}`} />
+              <div style={{ height: 1, background: C.bordo }} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <span style={{ fontWeight: 700, fontSize: 14, color: C.testo }}>Totale</span>
+                <span style={{ fontWeight: 800, fontSize: 28, color: C.arancio }}>€ {totale}</span>
+              </div>
+            </Riquadro>
+
+          </div>
+
+          <div style={{ padding: '16px 20px 40px', borderTop: `1px solid ${C.bordo}`, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button
-              onClick={lavoroTerminato}
+              onClick={confermaLavoro}
               style={{
-                width: '100%', height: 64, borderRadius: 18, border: 'none',
+                width: '100%', height: 60, borderRadius: 18, border: 'none',
                 background: '#1D9E75', color: C.bianco,
-                fontWeight: 800, fontSize: 20, cursor: 'pointer',
+                fontWeight: 800, fontSize: 18, cursor: 'pointer',
                 boxShadow: '0 4px 20px rgba(29,158,117,0.35)',
               }}
             >
-              ✅ Lavoro terminato — Paga € {totale}
+              ✅ Confermo, tutto ok — Paga € {totale}
             </button>
-            <p style={{ fontSize: 11, color: C.testoS, textAlign: 'center', marginTop: 10, lineHeight: 1.5 }}>
-              Premi solo quando sei soddisfatto del lavoro svolto.
-            </p>
+            <button
+              onClick={() => setMostraContestazione(true)}
+              style={{
+                width: '100%', height: 50, borderRadius: 14,
+                border: `1.5px solid ${C.rosso}`, background: C.bianco,
+                color: C.rosso, fontWeight: 700, fontSize: 15, cursor: 'pointer',
+              }}
+            >
+              ⚠️ Segnala un problema
+            </button>
           </div>
+
+          {/* Modal contestazione */}
+          {mostraContestazione && (
+            <div style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+              display: 'flex', alignItems: 'flex-end', zIndex: 50,
+            }}>
+              <div style={{
+                background: C.bianco, borderRadius: '24px 24px 0 0',
+                padding: 20, width: '100%', maxWidth: 480, margin: '0 auto',
+              }}>
+                <p style={{ fontWeight: 700, fontSize: 16, color: C.testo, marginBottom: 12 }}>
+                  Cosa non va?
+                </p>
+                <textarea
+                  value={motivoContestazione}
+                  onChange={e => setMotivoContestazione(e.target.value)}
+                  placeholder="Descrivi il problema riscontrato..."
+                  rows={4}
+                  style={{
+                    width: '100%', borderRadius: 12, border: `1px solid ${C.bordo}`,
+                    padding: 12, fontSize: 14, color: C.testo, outline: 'none',
+                    boxSizing: 'border-box', resize: 'none', marginBottom: 12,
+                  }}
+                />
+                <button
+                  onClick={contestaLavoro}
+                  disabled={!motivoContestazione.trim()}
+                  style={{
+                    width: '100%', height: 52, borderRadius: 14, border: 'none',
+                    background: motivoContestazione.trim() ? C.rosso : '#ccc',
+                    color: C.bianco, fontWeight: 700, fontSize: 15,
+                    cursor: motivoContestazione.trim() ? 'pointer' : 'not-allowed',
+                    marginBottom: 8,
+                  }}
+                >
+                  Invia segnalazione
+                </button>
+                <button
+                  onClick={() => setMostraContestazione(false)}
+                  style={{
+                    width: '100%', background: 'none', border: 'none',
+                    fontSize: 14, color: C.testoS, cursor: 'pointer', padding: '8px 0',
+                  }}
+                >
+                  Annulla
+                </button>
+              </div>
+            </div>
+          )}
         </div>
+      )
+    }
+
+    // ── IN CONTESTAZIONE: cliente ha segnalato un problema, in attesa di revisione ──
+    case 'in_contestazione': {
+      return (
+        <Centrata>
+          <p style={{ fontSize: 52 }}>🔍</p>
+          <p style={{ fontWeight: 700, fontSize: 20, marginTop: 12, color: C.testo }}>
+            Segnalazione in revisione
+          </p>
+          <p style={{ fontSize: 13, color: C.testoS, marginTop: 6, maxWidth: 300, textAlign: 'center', lineHeight: 1.6 }}>
+            Abbiamo ricevuto la tua segnalazione. Il nostro staff la
+            esaminerà e ti contatterà al numero fornito.
+          </p>
+          <div style={{
+            background: C.grigioC, borderRadius: 12, padding: '10px 16px', marginTop: 16,
+            fontSize: 12, color: C.testoS, maxWidth: 300, textAlign: 'center', lineHeight: 1.5,
+          }}>
+            🔒 Nessun addebito finché la revisione non sarà completata.
+          </div>
+        </Centrata>
       )
     }
 

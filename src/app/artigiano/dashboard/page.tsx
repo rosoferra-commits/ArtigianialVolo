@@ -100,7 +100,7 @@ export default function DashboardArtigiano() {
           .from('interventi')
           .select('*')
           .eq('artigiano_id', art.id)
-          .in('fase', ['richiesto', 'accettato', 'ritardo', 'valutazione', 'approvato'])
+          .in('fase', ['richiesto', 'accettato', 'ritardo', 'valutazione', 'approvato', 'finestra_conferma', 'in_contestazione'])
           .order('creato_at', { ascending: false })
           .limit(1)
           .maybeSingle()
@@ -450,6 +450,23 @@ export default function DashboardArtigiano() {
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ fase: 'valutazione', totale_proposto: totale }),
     })
+    setInviando(false)
+  }
+
+  // ── Artigiano segnala il lavoro come concluso ─────────────────────────────
+  // Apre la finestra di 48h durante la quale il cliente conferma o contesta.
+  // Se il cliente non risponde, un job pg_cron cattura automaticamente
+  // il pagamento (vedi /api/cron/chiudi-interventi-scaduti).
+  async function concludiLavoro() {
+    if (!intervento) return
+    setInviando(true)
+    const res = await fetch(`/api/interventi/${intervento.id}/concludi`, {
+      method: 'POST',
+    })
+    if (!res.ok) {
+      const j = await res.json()
+      setErrore(j.error || 'Errore durante l\'invio')
+    }
     setInviando(false)
   }
 
@@ -1003,7 +1020,7 @@ export default function DashboardArtigiano() {
               </p>
               <p style={{ fontSize: 13, color: '#2D7A5A', marginTop: 6, lineHeight: 1.6 }}>
                 Il cliente ha accettato la stima di <strong>€ {intervento.totale_proposto}</strong>.
-                Il pagamento sarà confermato quando il cliente premerà "Lavoro terminato".
+                Quando hai finito, premi il bottone qui sotto.
               </p>
             </div>
 
@@ -1028,6 +1045,26 @@ export default function DashboardArtigiano() {
                 </span>
               </div>
             </div>
+
+            {/* Bottone principale: lavoro concluso */}
+            <button
+              onClick={concludiLavoro}
+              disabled={inviando}
+              style={{
+                width: '100%', height: 60, borderRadius: 18, border: 'none',
+                background: inviando ? '#ccc' : '#1D9E75',
+                color: C.bianco, fontWeight: 800, fontSize: 18,
+                cursor: inviando ? 'not-allowed' : 'pointer',
+                marginBottom: 20,
+                boxShadow: inviando ? 'none' : '0 4px 20px rgba(29,158,117,0.35)',
+              }}
+            >
+              {inviando ? 'Invio…' : '✅ Ho finito il lavoro'}
+            </button>
+            <p style={{ fontSize: 11, color: C.testoS, textAlign: 'center', marginTop: -12, marginBottom: 20, lineHeight: 1.5 }}>
+              Il cliente avrà 48 ore per confermare. Se non risponde,
+              il pagamento verrà elaborato automaticamente.
+            </p>
 
             {/* Possibilità di rifare proposta */}
             <div style={{ background: C.bianco, border: `1px solid ${C.bordo}`, borderRadius: 14, padding: 16 }}>
@@ -1065,6 +1102,36 @@ export default function DashboardArtigiano() {
                 {inviando ? 'Invio…' : '📝 Invia nuova proposta al cliente'}
               </button>
             </div>
+          </div>
+        )}
+
+        {/* ── IN ATTESA CONFERMA CLIENTE (fase: finestra_conferma) ── */}
+        {intervento?.fase === 'finestra_conferma' && (
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <div style={{ position: 'relative', width: 80, height: 80, margin: '0 auto 20px' }}>
+              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', background: 'rgba(29,158,117,0.12)', animation: 'ping 1.4s cubic-bezier(0,0,.2,1) infinite' }}/>
+              <div style={{ position: 'absolute', inset: 20, borderRadius: '50%', background: '#1D9E75', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>⏳</div>
+            </div>
+            <p style={{ fontWeight: 700, fontSize: 18, color: C.testo }}>In attesa di conferma</p>
+            <p style={{ fontSize: 13, color: C.testoS, marginTop: 8, lineHeight: 1.6, maxWidth: 280, margin: '8px auto 0' }}>
+              Hai segnalato il lavoro come concluso. Il cliente ha 48 ore
+              per confermare — se non risponde, il pagamento verrà
+              elaborato automaticamente.
+            </p>
+          </div>
+        )}
+
+        {/* ── LAVORO IN CONTESTAZIONE (fase: in_contestazione) ── */}
+        {intervento?.fase === 'in_contestazione' && (
+          <div style={{ background: '#FCEBEB', borderRadius: 16, padding: 20, border: `1.5px solid ${C.rosso}` }}>
+            <p style={{ fontWeight: 700, fontSize: 18, color: C.rosso }}>⚠️ Il cliente ha segnalato un problema</p>
+            <p style={{ fontSize: 14, color: C.testoS, marginTop: 8, lineHeight: 1.6 }}>
+              {intervento.motivo_contestazione || 'Nessun dettaglio fornito.'}
+            </p>
+            <p style={{ fontSize: 12, color: C.testoS, marginTop: 12, lineHeight: 1.6 }}>
+              Il nostro staff esaminerà la segnalazione e ti contatterà.
+              Il pagamento resta sospeso fino alla revisione.
+            </p>
           </div>
         )}
       </div>

@@ -26,8 +26,12 @@ export type FaseIntervento =
   | 'accettato'    // artigiano ha accettato, è in viaggio
   | 'ritardo'      // artigiano avvisa che fa tardi, cliente decide
   | 'valutazione'  // artigiano ha proposto il totale, cliente deve decidere
-  | 'approvato'    // cliente ha accettato la stima, lavoro in corso, in attesa di "Lavoro terminato"
-  | 'pagato'       // cliente ha premuto "Lavoro terminato", pagamento catturato
+  | 'approvato'    // cliente ha accettato la stima, lavoro in corso
+  | 'lavoro_concluso_artigiano'  // artigiano ha premuto "ho finito"
+  | 'finestra_conferma'          // countdown 48h: cliente conferma o contesta
+  | 'in_contestazione'           // cliente ha segnalato un problema
+  | 'chiuso_dopo_revisione'      // esito della revisione manuale staff
+  | 'pagato'       // chiusura confermata (dal cliente o automatica), pagamento catturato
   | 'rifiutato'    // cliente ha rifiutato la stima → catturato solo diritto di chiamata
   | 'annullato'    // cliente ha scelto un altro artigiano
   | 'annullato_concorrenza'  // artigiano è stato accettato da un altro cliente prima
@@ -67,6 +71,12 @@ export interface Intervento {
   descrizione:             string | null
   scade_at:                string | null
   stelle_cliente:          number | null
+  // Chiusura automatica (migration 006)
+  artigiano_concluso_at:   string | null
+  scade_conferma_at:       string | null
+  chiusura_automatica:     boolean
+  motivo_contestazione:    string | null
+  esito_revisione:         string | null
   creato_at:               string
   aggiornato_at:           string
 }
@@ -84,6 +94,13 @@ export interface Artigiano {
   costo_chiamata_sos:    number
   costo_chiamata_urgente: number
   onboarding_completo:   boolean
+  // Contatore incidenti mancata chiusura (migration 006)
+  incidenti_mancata_chiusura: number
+  ultimo_incidente_at:        string | null
+  priorita_ridotta_fino_a:     string | null
+  sospeso:                     boolean
+  sospeso_motivo:              string | null
+  sospeso_at:                  string | null
   creato_at:             string
 }
 
