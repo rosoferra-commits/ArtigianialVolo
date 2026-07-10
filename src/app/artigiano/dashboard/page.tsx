@@ -952,8 +952,8 @@ export default function DashboardArtigiano() {
                 Una volta sul posto, inserisci il totale stimato.
                 Il cliente deciderà se accettare.
               </p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <span style={{ fontSize: 24, fontWeight: 800, color: C.testoS }}>€</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, width: '100%', boxSizing: 'border-box' }}>
+                <span style={{ fontSize: 24, fontWeight: 800, color: C.testoS, flexShrink: 0 }}>€</span>
                 <input
                   type="number"
                   min="0"
@@ -961,7 +961,7 @@ export default function DashboardArtigiano() {
                   onChange={e => setTotaleInput(e.target.value)}
                   placeholder="150"
                   style={{
-                    flex: 1, height: 54, borderRadius: 12,
+                    flex: 1, minWidth: 0, width: '100%', height: 54, borderRadius: 12,
                     border: `1.5px solid ${totaleInput ? C.arancio : C.bordo}`,
                     padding: '0 14px', fontSize: 26, fontWeight: 800,
                     color: C.arancio, outline: 'none', boxSizing: 'border-box',
@@ -1072,8 +1072,8 @@ export default function DashboardArtigiano() {
                 Se il lavoro richiede più del previsto, puoi proporre un nuovo importo.
                 Il cliente dovrà approvare nuovamente prima che tu possa procedere.
               </p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <span style={{ fontSize: 22, fontWeight: 800, color: C.testoS }}>€</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, width: '100%', boxSizing: 'border-box' }}>
+                <span style={{ fontSize: 22, fontWeight: 800, color: C.testoS, flexShrink: 0 }}>€</span>
                 <input
                   type="number"
                   min="0"
@@ -1081,7 +1081,7 @@ export default function DashboardArtigiano() {
                   onChange={e => setTotaleInput(e.target.value)}
                   placeholder="Nuovo importo"
                   style={{
-                    flex: 1, height: 50, borderRadius: 12,
+                    flex: 1, minWidth: 0, width: '100%', height: 50, borderRadius: 12,
                     border: `1.5px solid ${totaleInput ? C.arancio : C.bordo}`,
                     padding: '0 14px', fontSize: 22, fontWeight: 800,
                     color: C.arancio, outline: 'none', boxSizing: 'border-box',
